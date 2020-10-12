@@ -34,6 +34,7 @@ def fetch_hashtags(raw_test, dict_obj):
 
 
 def fetch_datetime(browser, dict_post):
+    # print("GETTING A DATETIME")
     ele_datetime = browser.find_one(".eo2As .c-Yi7 ._1o9PC")
     datetime = ele_datetime.get_attribute("datetime")
     dict_post["datetime"] = datetime
@@ -87,8 +88,10 @@ def fetch_likes_plays(browser, dict_post):
 def fetch_likers(browser, dict_post):
     # if not settings.fetch_likers:
     #     return
-    like_info_btn = browser.find_one(".EDfFK ._0mzm-.sqdOP")
-    like_info_btn = browser.driver.find_element_by_xpath('/html/body/div[4]/div[2]/div/article/div[3]/section[2]/div/div/button')
+    # like_info_btn = browser.find_one(".EDfFK ._0mzm-.sqdOP")
+    # like_info_btn = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/div[1]/article/div[3]/section[2]/div/div[2]/button')
+    temp = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/div[1]/article/div[3]/section[2]/div')
+    like_info_btn = temp.find_element_by_tag_name('button')
     if not like_info_btn:
         print("NO like button")
         return
@@ -114,6 +117,7 @@ def fetch_likers(browser, dict_post):
     dict_post["likers"] = list(likers.values())
     close_btn = browser.find_one(".WaOAr button")
     close_btn.click()
+    browser.driver.execute_script("window.scrollTo(0, 0);")
 
 
 def fetch_caption(browser, dict_post):
@@ -125,6 +129,7 @@ def fetch_caption(browser, dict_post):
 
         for element in temp_element:
 
+            # TODO ONLY FIRST LINE WILL BE FETCHED AS CAPTION IF THERE ARE MULTIPLE LINES IN CAPTION.
             if element.text not in ['Verified',''] and 'caption' not in dict_post:
                 dict_post["caption"] = element.text
 
@@ -139,16 +144,27 @@ def fetch_comments(browser, dict_post):
     show_more_selector = "button .glyphsSpriteCircle_add__outline__24__grey_9"
     show_more = browser.find_one(show_more_selector)
     while show_more:
-        show_more.location_once_scrolled_into_view
-        show_more.click()
-        sleep(0.3)
-        show_more = browser.find_one(show_more_selector)
+        try:   
+            show_more.click()
+            
+            sleep(0.3)
+            show_more = browser.find_one(show_more_selector)
+            if not show_more:
+                break
+            # show_more.location_once_scrolled_into_view
+        except:
+            pass
 
+    browser.driver.execute_script("window.scrollTo(0, 0);")
     show_comment_btns = browser.find(".EizgU")
+    # print(show_comment_btns[0].get_attribute('innerHTML'))
     for show_comment_btn in show_comment_btns:
-        show_comment_btn.location_once_scrolled_into_view
+        
+        if show_comment_btn is None:
+            break
         show_comment_btn.click()
         sleep(0.3)
+        # show_comment_btn.location_once_scrolled_into_view
 
     ele_comments = browser.find(".eo2As .gElp9")
     comments = []

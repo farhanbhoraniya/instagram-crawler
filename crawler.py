@@ -51,7 +51,7 @@ def arg_required(args, fields=[]):
 
 
 def output(data, filepath):
-    print("WRITING IN OUTPUT FILE")
+    # print("WRITING IN OUTPUT FILE")
     # print(data, filepath)
     out = json.dumps(data, ensure_ascii=False)
     if filepath:
@@ -81,36 +81,74 @@ if __name__ == "__main__":
     override_settings(args)
 
     if args.mode in ["posts", "posts_full"]:
-        arg_required("username")
-        output(
-            get_posts_by_user(
-                args.username, args.number, args.mode == "posts_full", args.debug
-            ),
-            args.output,
-        )
-    elif args.mode == "profile":
+        
         try:
-            with open("pending.json", "r") as f:
+            with open("user_posts_pending.json", "r") as f:
                 users_list = f.read()
 
             users_list = json.loads(users_list)
         except:
-            print("NOT ABLE TO READ pending.json file")
+            print("NOT ABLE TO READ user_posts_pending.json file")
             exit()
 
         try:
-            with open("visited.json", "r") as f:
+            with open("user_post_visited.json", "r") as f:
                 visited = f.read()
 
             visited = json.loads(visited)
         except:
-            print("NOT ABLE TO READ THE visited.json file")
+            print("NOT ABLE TO READ THE user_post_visited.json file")
             exit()
         
         visited = set(visited)
 
         while True:
-            # arg_required("username")
+            while True:
+                if not users_list:
+                    print("NO USERS AVAILABLE")
+                    exit()
+                next_user = users_list[0]
+                if next_user not in visited:
+                    break
+                del users_list[0]
+            
+            print("CHECKING FOR THE USER ", next_user)
+            data = get_posts_by_user(next_user, args.number or 10, args.mode=="posts_full", args.debug)
+            for item in data:
+                item["user"] = next_user
+            output(data, "users_posts.json")
+            del users_list[0]
+            print("FOUND DATA FOR ", next_user)
+
+            visited.add(next_user)
+            try:
+                with open("user_post_visited.json", "w") as f:
+                    f.write(json.dumps(list(visited)))
+            except:
+                print("NOT ABLE TO WRITE THE VISITED LIST TO user_post_visited.json file")
+
+    elif args.mode == "profile":
+        try:
+            with open("user_info_pending.json", "r") as f:
+                users_list = f.read()
+
+            users_list = json.loads(users_list)
+        except:
+            print("NOT ABLE TO READ user_info_pending.json file")
+            exit()
+
+        try:
+            with open("user_info_visited.json", "r") as f:
+                visited = f.read()
+
+            visited = json.loads(visited)
+        except:
+            print("NOT ABLE TO READ THE user_info_visited.json file")
+            exit()
+        
+        visited = set(visited)
+
+        while True:
             while True:
                 if not users_list:
                     print("NO USERS AVAILABLE")
@@ -122,7 +160,7 @@ if __name__ == "__main__":
             
             print("CHECKING FOR THE USER ", next_user)
             data = get_profile(next_user)
-            output(data, "users.json")
+            output(data, "user_info.json")
             del users_list[0]
             print("FOUND DATA FOR ", next_user)
             users_list.extend(data.get("followers", []))
@@ -130,25 +168,69 @@ if __name__ == "__main__":
             users_list = list(set(users_list))
             
             try:
-                with open("pending.json", "w") as f:
+                with open("user_info_pending.json", "w") as f:
                     f.write(json.dumps(users_list))
             except:
-                print("NOT ABLE TO WRITE THE UPDATED LIST TO pending.json file")
+                print("NOT ABLE TO WRITE THE UPDATED LIST TO user_info_pending.json file")
 
             visited.add(next_user)
             try:
-                with open("visited.json", "w") as f:
+                with open("user_info_visited.json", "w") as f:
                     f.write(json.dumps(list(visited)))
             except:
-                print("NOT ABLE TO WRITE THE VISITED LIST TO visited.json file")
+                print("NOT ABLE TO WRITE THE VISITED LIST TO user_info_visited.json file")
 
-    elif args.mode == "profile_script":
-        arg_required("username")
-        output(get_profile_from_script(args.username), args.output)
     elif args.mode == "hashtag":
-        arg_required("tag")
-        output(
-            get_posts_by_hashtag(args.tag, args.number or 100, args.debug), args.output
-        )
+
+        try:
+            with open("pending_hashtag.json", "r") as f:
+                hashtag_list = f.read()
+
+            hashtag_list = json.loads(hashtag_list)
+        except:
+            print("NOT ABLE TO READ pending_hashtag.json file")
+            exit()
+
+        try:
+            with open("visited_hashtag.json", "r") as f:
+                visited = f.read()
+
+            visited = json.loads(visited)
+        except:
+            print("NOT ABLE TO READ THE visited_hashtag.json file")
+            exit()
+        
+        visited = set(visited)
+
+        while True:
+            while True:
+                if not hashtag_list:
+                    print("NO HASHTAG AVAILABLE")
+                    exit()
+                next_hashtag = hashtag_list[0]
+                if next_hashtag not in visited:
+                    break
+                del hashtag_list[0]
+            
+            print("CHECKING FOR THE HASHTAG ", next_hashtag)
+            data = get_posts_by_hashtag(next_hashtag, args.number or 10, args.debug)
+            for item in data:
+                item['hashtag'] = next_hashtag
+            output(data, "hashtag.json")
+            del hashtag_list[0]
+            print("FOUND DATA FOR ", next_hashtag)
+            
+            try:
+                with open("pending_hashtag.json", "w") as f:
+                    f.write(json.dumps(hashtag_list))
+            except:
+                print("NOT ABLE TO WRITE THE UPDATED LIST TO pending_hashtag.json file")
+
+            visited.add(next_hashtag)
+            try:
+                with open("visited_hashtag.json", "w") as f:
+                    f.write(json.dumps(list(visited)))
+            except:
+                print("NOT ABLE TO WRITE THE VISITED LIST TO visited_hashtag.json file")
     else:
         usage()

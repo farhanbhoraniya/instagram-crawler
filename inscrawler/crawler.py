@@ -126,26 +126,29 @@ class InsCrawler(Logging):
         close_btn.click()
         return list(likers)
 
-    def get_user_profile(self, username):
+    def get_user_profile(self, username, get_followers=True):
         browser = self.browser
         url = "%s/%s/" % (InsCrawler.URL, username)
         browser.get(url)
         time.sleep(2)
-        try:
-            followers_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[2]')
-            followers_elem.click()
-            followers = self.get_followers()
-        except:
-            followers = []
-        # print(followers)
-        browser.get(url)
-        time.sleep(2)
-        try:
-            follwing_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[3]')
-            follwing_elem.click()
-            following = self.get_followers()
-        except:
-            following = []
+        followers = []
+        following = []
+        if get_followers:
+            try:
+                followers_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[2]')
+                followers_elem.click()
+                followers = self.get_followers()
+            except:
+                followers = []
+            # print(followers)
+            browser.get(url)
+            time.sleep(2)
+            try:
+                follwing_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[3]')
+                follwing_elem.click()
+                following = self.get_followers()
+            except:
+                following = []
 
         # print(following)
         browser.get(url)
@@ -190,7 +193,7 @@ class InsCrawler(Logging):
         }
 
     def get_user_posts(self, username, number=None, detail=False):
-        user_profile = self.get_user_profile(username)
+        user_profile = self.get_user_profile(username, False)
         if not number:
             number = instagram_int(user_profile["post_num"])
 
@@ -204,7 +207,7 @@ class InsCrawler(Logging):
     def get_latest_posts_by_tag(self, tag, num):
         url = "%s/explore/tags/%s/" % (InsCrawler.URL, tag)
         self.browser.get(url)
-        return self._get_posts(num)
+        return self._get_posts_full(num)
 
     def auto_like(self, tag="", maximum=1000):
         self.login()
@@ -238,28 +241,34 @@ class InsCrawler(Logging):
 
             # It takes time to load the post for some users with slow network
             if ele_a_datetime is None:
+                # print("RETRY EXCEPTION")
                 raise RetryException()
 
             next_key = ele_a_datetime.get_attribute("href")
             if cur_key == next_key:
                 raise RetryException()
-
+        # print("GETTING FULL POSTS")
         browser = self.browser
         browser.implicitly_wait(1)
         browser.scroll_down()
         ele_post = browser.find_one(".v1Nh3 a")
+        if ele_post is None:
+            return []
         ele_post.click()
-        dict_posts = {}
+        dict_posts = []
 
         pbar = tqdm(total=num)
         pbar.set_description("fetching")
         cur_key = None
 
         all_posts = self._get_posts(num)
+        # print("ALL POSTS------------------")
+        # print(all_posts)
         i = 1
 
         # Fetching all posts
-        for _ in range(num):
+        for x in range(num):
+            # print("GETTING POST NUMBER ", x)
             dict_post = {}
 
             # Fetching post detail
@@ -268,9 +277,11 @@ class InsCrawler(Logging):
                     check_next_post(all_posts[i]['key'])
                     i = i + 1
 
+                browser.open_new_tab(all_posts[x]['key'])
                 # Fetching datetime and url as key
                 ele_a_datetime = browser.find_one(".eo2As .c-Yi7")
                 cur_key = ele_a_datetime.get_attribute("href")
+                # print("CURR_KEY ", cur_key)
                 dict_post["key"] = cur_key
                 fetch_datetime(browser, dict_post)
                 fetch_imgs(browser, dict_post)
@@ -278,8 +289,10 @@ class InsCrawler(Logging):
                 fetch_likers(browser, dict_post)
                 fetch_caption(browser, dict_post)
                 fetch_comments(browser, dict_post)
+                browser.close_current_tab()
 
             except RetryException:
+                browser.close_current_tab()
                 sys.stderr.write(
                     "\x1b[1;31m"
                     + "Failed to fetch the post: "
@@ -300,12 +313,13 @@ class InsCrawler(Logging):
                 traceback.print_exc()
 
             self.log(json.dumps(dict_post, ensure_ascii=False))
-            dict_posts[browser.current_url] = dict_post
-
+            # dict_posts[browser.current_url] = dict_post
+            dict_posts.append(dict_post)
             pbar.update(1)
 
         pbar.close()
-        posts = list(dict_posts.values())
+        # posts = list(dict_posts.values())
+        posts = dict_posts
         if posts:
             posts.sort(key=lambda post: post["datetime"], reverse=True)
         return posts
