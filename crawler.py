@@ -114,8 +114,7 @@ if __name__ == "__main__":
             
             print("CHECKING FOR THE USER ", next_user)
             data = get_posts_by_user(next_user, args.number or 10, args.mode=="posts_full", args.debug)
-            for item in data:
-                item["user"] = next_user
+            
             output(data, "users_posts.json")
             del users_list[0]
             print("FOUND DATA FOR ", next_user)

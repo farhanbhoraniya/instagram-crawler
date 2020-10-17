@@ -124,15 +124,16 @@ def fetch_caption(browser, dict_post):
     ele_comments = browser.find(".eo2As .gElp9")
 
     if len(ele_comments) > 0:
-
+        author = browser.find_one("._6lAjh", ele_comments[0]).text
+        author = author.split('\n')[0]
         temp_element = browser.find("span",ele_comments[0])
 
         for element in temp_element:
 
-            # TODO ONLY FIRST LINE WILL BE FETCHED AS CAPTION IF THERE ARE MULTIPLE LINES IN CAPTION.
-            if element.text not in ['Verified',''] and 'caption' not in dict_post:
+            if element.text not in ['Verified', '', author]:
                 dict_post["caption"] = element.text
 
+        dict_post['user'] = author
         fetch_mentions(dict_post.get("caption",""), dict_post)
         fetch_hashtags(dict_post.get("caption",""), dict_post)
 
