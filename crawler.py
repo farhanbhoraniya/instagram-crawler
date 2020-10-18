@@ -13,10 +13,8 @@ from inscrawler.settings import prepare_override_settings
 
 def usage():
     return """
-        python crawler.py posts -u cal_foodie -n 100 -o ./output
         python crawler.py posts_full -u cal_foodie -n 100 -o ./output
         python crawler.py profile -u cal_foodie -o ./output
-        python crawler.py profile_script -u cal_foodie -o ./output
         python crawler.py hashtag -t taiwan -o ./output
 
         The default number for fetching posts via hashtag is 100.
@@ -66,7 +64,7 @@ def output(data, filepath):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Instagram Crawler", usage=usage())
     parser.add_argument(
-        "mode", help="options: [posts, posts_full, profile, profile_script, hashtag]"
+        "mode", help="options: [posts_full, profile, hashtag]"
     )
     parser.add_argument("-n", "--number", type=int, help="number of returned posts")
     parser.add_argument("-u", "--username", help="instagram's username")
