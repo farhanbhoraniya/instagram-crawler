@@ -98,7 +98,8 @@ class InsCrawler(Logging):
         
         try:
             likers_elems = self.browser.driver.find_elements_by_xpath('/html/body/div[4]/div/div/div[2]/ul/div/li')
-        except:
+        except Exception as e:
+            print("NO LIKERS FOUND FIRST TIME", e)
             likers_elems = []
         
         last_liker = None
@@ -108,22 +109,28 @@ class InsCrawler(Logging):
                 try:
                     name = ele.find_element_by_class_name('FPmhX').get_attribute('innerHTML')
                     likers.add(name)
-                except:
+                except Exception as e:
+                    print("NOT ABLE TO GET THE NAME", e)
                     continue
 
             if last_liker == likers_elems[-1]:
                 break
 
             last_liker = likers_elems[-1]
-            last_liker.location_once_scrolled_into_view
-            sleep(0.6)
+            try:
+                last_liker.location_once_scrolled_into_view
+                sleep(0.6)
+            except Exception as e:
+                print("EXCEPTION WHILE SCROLLING", e)
+            
             try:
                 likers_elems = list(self.browser.driver.find_elements_by_xpath('/html/body/div[4]/div/div/div[2]/ul/div/li'))
-            except:
+            except Exception as e:
+                print("NO LIKERS FOUND AFTER FIRST TIME", e)
                 likers_elems = []
         
-        close_btn = self.browser.find_one(".eiUFA .wpO6b ")
-        close_btn.click()
+        # close_btn = self.browser.find_one(".eiUFA .wpO6b ")
+        # close_btn.click()
         return list(likers)
 
     def get_user_profile(self, username, get_followers=True):
@@ -132,28 +139,59 @@ class InsCrawler(Logging):
         browser.get(url)
         time.sleep(2)
         followers = []
-        following = []
+        following = {}
+        users = []
+        hashtags = []
+
         if get_followers:
             try:
                 followers_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[2]')
                 followers_elem.click()
                 followers = self.get_followers()
-            except:
-                followers = []
+            except Exception as e:
+                print("ERROR WHILE GETTING THE FOLLOWERS", e)
+                pass
             # print(followers)
             browser.get(url)
             time.sleep(2)
             try:
                 follwing_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[3]')
                 follwing_elem.click()
-                following = self.get_followers()
-            except:
-                following = []
+                users = self.get_followers()
+            except Exception as e:
+                print("ERROR WHILE GETTING THE FOLLOWING", e)
+                pass
+
+            browser.get(url)
+            time.sleep(2)
+
+            try:
+                follwing_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[3]')
+                follwing_elem.click()
+                hashtag_elem = browser.driver.find_element_by_xpath('/html/body/div[4]/div/div/nav/a[2]')
+                hashtag_elem.click()
+
+                hashtag_lists = browser.driver.find_elements_by_class_name('hI7cq')
+
+                for item in hashtag_lists:
+                    # First character is #. So we remove it.
+                    hashtags.append(item.text[1:])
+
+            except Exception as e:
+                print("ERROR WHILE GETTING THE HASHTAGS", e)
+                pass
+
+        following['users'] = users
+        following['hashtags'] = hashtags
 
         # print(following)
         browser.get(url)
         time.sleep(2)
         name = browser.find_one(".rhpdm")
+        if name is None:
+            name = ""
+        else:
+            name = name.text
         desc = browser.find_one(".-vDIg span")
         photo = browser.find_one("._6q-tv")
         statistics = [ele.text for ele in browser.find(".g47SY")]
@@ -161,14 +199,15 @@ class InsCrawler(Logging):
         post_num, follower_num, following_num = statistics        
 
         return {
-            "name": name.text,
+            "name": name,
             "desc": desc.text if desc else None,
             "photo_url": photo.get_attribute("src"),
             "post_num": post_num,
             "follower_num": follower_num,
             "following_num": following_num,
             "followers": followers,
-            "following": following
+            "following": following,
+            "username": username
         }
 
     def get_user_profile_from_script_shared_data(self, username):

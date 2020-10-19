@@ -26,8 +26,8 @@ def get_posts_by_user(username, number, detail, debug):
     return ins_crawler.get_user_posts(username, number, detail)
 
 
-def get_profile(username):
-    ins_crawler = InsCrawler()
+def get_profile(username, debug=False):
+    ins_crawler = InsCrawler(debug)
     return ins_crawler.get_user_profile(username)
 
 
@@ -156,12 +156,12 @@ if __name__ == "__main__":
                 del users_list[0]
             
             print("CHECKING FOR THE USER ", next_user)
-            data = get_profile(next_user)
+            data = get_profile(next_user, args.debug)
             output(data, "user_info.json")
             del users_list[0]
             print("FOUND DATA FOR ", next_user)
             users_list.extend(data.get("followers", []))
-            users_list.extend(data.get("following", []))
+            users_list.extend(data.get("following", {}).get("users"))
             users_list = list(set(users_list))
             
             try:
