@@ -94,17 +94,23 @@ class InsCrawler(Logging):
         check_login()
 
     def get_followers(self):
+        # print("GETTING FOLLOWERS")
         likers = set()
         
         try:
-            likers_elems = self.browser.driver.find_elements_by_xpath('/html/body/div[4]/div/div/div[2]/ul/div/li')
+            time.sleep(0.5)
+            likers_elems = list(self.browser.driver.find_elements_by_xpath('/html/body/div[5]/div/div/div[2]/ul/div/li'))
+            # print(likers_elems)
         except Exception as e:
             print("NO LIKERS FOUND FIRST TIME", e)
             likers_elems = []
-        
+        # print(likers_elems, "")
         last_liker = None
         while likers_elems:
-            
+            # print("IN LOOP")
+            # print(len(likers), len(likers_elems))
+            if len(likers) >= 1000:
+                break
             for ele in likers_elems:
                 try:
                     name = ele.find_element_by_class_name('FPmhX').get_attribute('innerHTML')
@@ -117,14 +123,16 @@ class InsCrawler(Logging):
                 break
 
             last_liker = likers_elems[-1]
+            # print(last_liker)
             try:
                 last_liker.location_once_scrolled_into_view
-                sleep(0.6)
+                sleep(1)
             except Exception as e:
                 print("EXCEPTION WHILE SCROLLING", e)
             
             try:
-                likers_elems = list(self.browser.driver.find_elements_by_xpath('/html/body/div[4]/div/div/div[2]/ul/div/li'))
+                likers_elems = list(self.browser.driver.find_elements_by_xpath('/html/body/div[5]/div/div/div[2]/ul/div/li'))
+                likers_elems = likers_elems[-12:]
             except Exception as e:
                 print("NO LIKERS FOUND AFTER FIRST TIME", e)
                 likers_elems = []
@@ -147,6 +155,7 @@ class InsCrawler(Logging):
             try:
                 followers_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[2]')
                 followers_elem.click()
+                time.sleep(0.5)
                 followers = self.get_followers()
             except Exception as e:
                 print("ERROR WHILE GETTING THE FOLLOWERS", e)
@@ -168,7 +177,9 @@ class InsCrawler(Logging):
             try:
                 follwing_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[3]')
                 follwing_elem.click()
-                hashtag_elem = browser.driver.find_element_by_xpath('/html/body/div[4]/div/div/nav/a[2]')
+                time.sleep(0.5)
+                hashtag_elem = browser.driver.find_element_by_xpath('/html/body/div[5]/div/div/nav/a[2]')
+                
                 hashtag_elem.click()
 
                 hashtag_lists = browser.driver.find_elements_by_class_name('hI7cq')
@@ -194,6 +205,11 @@ class InsCrawler(Logging):
             name = name.text
         desc = browser.find_one(".-vDIg span")
         photo = browser.find_one("._6q-tv")
+        try:
+            photo_url = photo.get_attribute("src")
+        except:
+            photo_url = ""
+
         statistics = [ele.text for ele in browser.find(".g47SY")]
 
         post_num, follower_num, following_num = statistics        
@@ -201,7 +217,7 @@ class InsCrawler(Logging):
         return {
             "name": name,
             "desc": desc.text if desc else None,
-            "photo_url": photo.get_attribute("src"),
+            "photo_url": photo_url,
             "post_num": post_num,
             "follower_num": follower_num,
             "following_num": following_num,
