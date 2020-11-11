@@ -141,33 +141,67 @@ class InsCrawler(Logging):
         # close_btn.click()
         return list(likers)
 
-    def get_followers_list(self):
+    def get_followed_hashtags(self, user_id, query_hash, dict_data):
         likers = set()
         browser = self.browser
-
-        '''
-        graphql/query/?query_hash=c76146de99bb02f6415203be841dd25a&variables={"id":"41124416282","include_reel":true,"fetch_mutual":true,"first":50}
-
-        graphql/query/?query_hash=c76146de99bb02f6415203be841dd25a&variables={"id":"41124416282","include_reel":true,"fetch_mutual":false,"first":50,"after":"QVFCS245bzgxYk43SGZ5UU5STUhzRUVqVjJtUE5FVjFDR0pLMEpGd2VJdEh4NW5IZ2ZLMWlMWVZneFZ2NWdvVDhRSEtTY2JiMUgxZXp3TTRYcUxja1lFdQ=="}
-        '''
         
-        followers_query_hash = "c76146de99bb02f6415203be841dd25a"
-        base_query = "graphql/query/?query_hash=c76146de99bb02f6415203be841dd25a&variables="
+        base_query = "graphql/query/?query_hash=" + query_hash + "&variables="
         
         base_followers_url = "%s/%s" % (InsCrawler.URL, base_query)
         
         query_vars = {
-            "id":"41124416282",
-            "first":50
+            "id":user_id
         }
 
         query_vars_str = json.dumps(query_vars).replace(" ", "")
         followers_url = "%s%s" % (base_followers_url, query_vars_str)
 
-        max_followers = 1000
+        browser.get(followers_url)
+        time.sleep(1)
+
+        try:
+            followers_txt = browser.driver.find_element_by_tag_name('pre').text
+            followers_json = json.loads(followers_txt)
+            # print("===FollowersContent")
+            # print(followers)
+            
+            followers_list = followers_json['data']['user'][dict_data]['edges']
+
+            for follower in followers_list:
+                likers.add(follower['node']['name'])
+        
+        except Exception as e:
+            print("ERROR WHILE GETTING THE HASHTAGS", e)
+
+        return list(likers)
+    
+    def get_followers_list(self, user_id, query_hash, dict_data):
+        likers = set()
+        browser = self.browser
+        
+        base_query = "graphql/query/?query_hash=" + query_hash + "&variables="
+        
+        base_followers_url = "%s/%s" % (InsCrawler.URL, base_query)
+        
+        page_size = 50
+        
+        # timeoutOccured = False
+
+        query_vars = {
+            "id":user_id,
+            "first":page_size
+        }
+
+        query_vars_str = json.dumps(query_vars).replace(" ", "")
+        followers_url = "%s%s" % (base_followers_url, query_vars_str)
+
+        max_followers = 21000
+
         total_follower_count = 0
 
         while True:
+            print("=========total_follower_count")
+            print(total_follower_count)
             if(total_follower_count >= max_followers):
                 break
 
@@ -179,10 +213,10 @@ class InsCrawler(Logging):
                 followers_json = json.loads(followers_txt)
                 # print("===FollowersContent")
                 # print(followers)
-                pagination_info = followers_json['data']['user']['edge_followed_by']['page_info']
+                pagination_info = followers_json['data']['user'][dict_data]['page_info']
                 has_next = pagination_info['has_next_page']
                 
-                followers_list = followers_json['data']['user']['edge_followed_by']['edges']
+                followers_list = followers_json['data']['user'][dict_data]['edges']
 
                 for follower in followers_list:
                     likers.add(follower['node']['username'])
@@ -200,7 +234,8 @@ class InsCrawler(Logging):
             
             except Exception as e:
                 print("ERROR WHILE GETTING THE FOLLOWING", e)
-                pass
+                print("sleeping...")
+                time.sleep(300)
 
         return list(likers)
 
@@ -211,6 +246,24 @@ class InsCrawler(Logging):
         browser.get(url)
         time.sleep(2)
 
+        user_config_ele = browser.driver.find_element_by_xpath('/html/body/script[1]')
+
+        user_config_txt = user_config_ele.get_attribute('innerHTML')[21:-1]
+        
+        user_config_json = json.loads(user_config_txt)
+        user_id = user_config_json['entry_data']['ProfilePage'][0]['graphql']['user']['id']
+        # print("=========user_id")
+        # print(user_id)
+        # count = 1
+        # for script in user_config_txt:
+
+        #     print("======= " + str(count))
+        #     print(script.get_attribute('innerHTML')[:22])
+        #     count += 1
+
+        # print("========user_config_txt")
+        # print(user_config_txt)
+
         followers = []
         following = {}
         users = []
@@ -218,44 +271,40 @@ class InsCrawler(Logging):
 
         if get_followers:
             try:
-                # followers_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[2]')
-                # followers_elem.click()
-                # time.sleep(0.5)
-                # followers = self.get_followers()
-                
-                followers = self.get_followers_list()
+                # Following d04b0a864b4b54837c0d870b0e77e076 | edge_follow
+                # Hashtag e6306cc3dbe69d6a82ef8b5f8654c50b | edge_following_hashtag
+                # Query Hash to get Followers is c76146de99bb02f6415203be841dd25a | edge_followed_by
+                followers = self.get_followers_list(user_id, "c76146de99bb02f6415203be841dd25a", "edge_followed_by")
             except Exception as e:
                 print("ERROR WHILE GETTING THE FOLLOWERS", e)
                 pass
             # print(followers)
-            browser.get(url)
-            time.sleep(2)
+            # browser.get(url)
+            # time.sleep(2)
             try:
-                follwing_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[3]')
-                follwing_elem.click()
-                users = self.get_followers()
+                # follwing_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[3]')
+                # follwing_elem.click()
+                users = self.get_followers_list(user_id, "d04b0a864b4b54837c0d870b0e77e076", "edge_follow")
             except Exception as e:
                 print("ERROR WHILE GETTING THE FOLLOWING", e)
                 pass
 
             # print(users)
 
-            browser.get(url)
-            time.sleep(2)
+            # browser.get(url)
+            # time.sleep(2)
 
             try:
-                follwing_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[3]')
-                follwing_elem.click()
-                time.sleep(0.5)
-                hashtag_elem = browser.driver.find_element_by_xpath('/html/body/div[5]/div/div/nav/a[2]')
-                
-                hashtag_elem.click()
+                # follwing_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[3]')
+                # follwing_elem.click()
+                # hashtag_elem = browser.driver.find_element_by_xpath('/html/body/div[4]/div/div/nav/a[2]')
+                # hashtag_elem.click()
 
-                hashtag_lists = browser.driver.find_elements_by_class_name('hI7cq')
-
-                for item in hashtag_lists:
-                    # First character is #. So we remove it.
-                    hashtags.append(item.text[1:])
+                # hashtag_lists = browser.driver.find_elements_by_class_name('hI7cq')
+                hashtags = self.get_followed_hashtags(user_id, "e6306cc3dbe69d6a82ef8b5f8654c50b", "edge_following_hashtag")
+                # for item in hashtag_lists:
+                #     # First character is #. So we remove it.
+                #     hashtags.append(item.text[1:])
 
             except Exception as e:
                 print("ERROR WHILE GETTING THE HASHTAGS", e)
