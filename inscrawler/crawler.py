@@ -200,8 +200,7 @@ class InsCrawler(Logging):
         total_follower_count = 0
 
         while True:
-            print("=========total_follower_count")
-            print(total_follower_count)
+            
             if(total_follower_count >= max_followers):
                 break
 
@@ -234,7 +233,8 @@ class InsCrawler(Logging):
             
             except Exception as e:
                 print("ERROR WHILE GETTING THE FOLLOWING", e)
-                print("sleeping...")
+                print("Total Followers Found : " + str(total_follower_count))
+                print("Sleeping for 5 mins...")
                 time.sleep(300)
 
         return list(likers)
@@ -274,6 +274,7 @@ class InsCrawler(Logging):
                 # Following d04b0a864b4b54837c0d870b0e77e076 | edge_follow
                 # Hashtag e6306cc3dbe69d6a82ef8b5f8654c50b | edge_following_hashtag
                 # Query Hash to get Followers is c76146de99bb02f6415203be841dd25a | edge_followed_by
+                print("Getting Followers...")
                 followers = self.get_followers_list(user_id, "c76146de99bb02f6415203be841dd25a", "edge_followed_by")
             except Exception as e:
                 print("ERROR WHILE GETTING THE FOLLOWERS", e)
@@ -284,6 +285,7 @@ class InsCrawler(Logging):
             try:
                 # follwing_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[3]')
                 # follwing_elem.click()
+                print("Getting Following...")
                 users = self.get_followers_list(user_id, "d04b0a864b4b54837c0d870b0e77e076", "edge_follow")
             except Exception as e:
                 print("ERROR WHILE GETTING THE FOLLOWING", e)
@@ -301,6 +303,7 @@ class InsCrawler(Logging):
                 # hashtag_elem.click()
 
                 # hashtag_lists = browser.driver.find_elements_by_class_name('hI7cq')
+                print("Getting Hashtags...")
                 hashtags = self.get_followed_hashtags(user_id, "e6306cc3dbe69d6a82ef8b5f8654c50b", "edge_following_hashtag")
                 # for item in hashtag_lists:
                 #     # First character is #. So we remove it.
