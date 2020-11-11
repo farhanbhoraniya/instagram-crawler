@@ -141,11 +141,76 @@ class InsCrawler(Logging):
         # close_btn.click()
         return list(likers)
 
+    def get_followers_list(self):
+        likers = set()
+        browser = self.browser
+
+        '''
+        graphql/query/?query_hash=c76146de99bb02f6415203be841dd25a&variables={"id":"41124416282","include_reel":true,"fetch_mutual":true,"first":50}
+
+        graphql/query/?query_hash=c76146de99bb02f6415203be841dd25a&variables={"id":"41124416282","include_reel":true,"fetch_mutual":false,"first":50,"after":"QVFCS245bzgxYk43SGZ5UU5STUhzRUVqVjJtUE5FVjFDR0pLMEpGd2VJdEh4NW5IZ2ZLMWlMWVZneFZ2NWdvVDhRSEtTY2JiMUgxZXp3TTRYcUxja1lFdQ=="}
+        '''
+        
+        followers_query_hash = "c76146de99bb02f6415203be841dd25a"
+        base_query = "graphql/query/?query_hash=c76146de99bb02f6415203be841dd25a&variables="
+        
+        base_followers_url = "%s/%s" % (InsCrawler.URL, base_query)
+        
+        query_vars = {
+            "id":"41124416282",
+            "first":50
+        }
+
+        query_vars_str = json.dumps(query_vars).replace(" ", "")
+        followers_url = "%s%s" % (base_followers_url, query_vars_str)
+
+        max_followers = 1000
+        total_follower_count = 0
+
+        while True:
+            if(total_follower_count >= max_followers):
+                break
+
+            browser.get(followers_url)
+            time.sleep(1)
+
+            try:
+                followers_txt = browser.driver.find_element_by_tag_name('pre').text
+                followers_json = json.loads(followers_txt)
+                # print("===FollowersContent")
+                # print(followers)
+                pagination_info = followers_json['data']['user']['edge_followed_by']['page_info']
+                has_next = pagination_info['has_next_page']
+                
+                followers_list = followers_json['data']['user']['edge_followed_by']['edges']
+
+                for follower in followers_list:
+                    likers.add(follower['node']['username'])
+                    total_follower_count += 1
+
+                if(has_next):
+                    next_page = pagination_info['end_cursor']
+                    query_vars['after'] = next_page
+                    query_vars_str = json.dumps(query_vars).replace(" ", "")
+                    followers_url = "%s%s" % (base_followers_url, query_vars_str)
+                    # print("=======next_url")
+                    # print(followers_url)
+                else:
+                    break
+            
+            except Exception as e:
+                print("ERROR WHILE GETTING THE FOLLOWING", e)
+                pass
+
+        return list(likers)
+
+
     def get_user_profile(self, username, get_followers=True):
         browser = self.browser
         url = "%s/%s/" % (InsCrawler.URL, username)
         browser.get(url)
         time.sleep(2)
+
         followers = []
         following = {}
         users = []
@@ -153,10 +218,12 @@ class InsCrawler(Logging):
 
         if get_followers:
             try:
-                followers_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[2]')
-                followers_elem.click()
-                time.sleep(0.5)
-                followers = self.get_followers()
+                # followers_elem = browser.driver.find_element_by_xpath('//*[@id="react-root"]/section/main/div/header/section/ul/li[2]')
+                # followers_elem.click()
+                # time.sleep(0.5)
+                # followers = self.get_followers()
+                
+                followers = self.get_followers_list()
             except Exception as e:
                 print("ERROR WHILE GETTING THE FOLLOWERS", e)
                 pass
@@ -170,6 +237,8 @@ class InsCrawler(Logging):
             except Exception as e:
                 print("ERROR WHILE GETTING THE FOLLOWING", e)
                 pass
+
+            # print(users)
 
             browser.get(url)
             time.sleep(2)
