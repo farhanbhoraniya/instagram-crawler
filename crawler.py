@@ -4,6 +4,7 @@ from __future__ import unicode_literals
 import argparse
 import json
 import sys
+import time
 from io import open
 
 from inscrawler import InsCrawler
@@ -176,6 +177,8 @@ if __name__ == "__main__":
                     f.write(json.dumps(list(visited)))
             except:
                 print("NOT ABLE TO WRITE THE VISITED LIST TO user_info_visited.json file")
+
+            time.sleep(300)
 
     elif args.mode == "hashtag":
 

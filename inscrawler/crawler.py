@@ -195,7 +195,7 @@ class InsCrawler(Logging):
         query_vars_str = json.dumps(query_vars).replace(" ", "")
         followers_url = "%s%s" % (base_followers_url, query_vars_str)
 
-        max_followers = 21000
+        max_followers = 10000
 
         total_follower_count = 0
 
@@ -205,7 +205,7 @@ class InsCrawler(Logging):
                 break
 
             browser.get(followers_url)
-            time.sleep(1)
+            time.sleep(10)
 
             try:
                 followers_txt = browser.driver.find_element_by_tag_name('pre').text
